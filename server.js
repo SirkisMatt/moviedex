@@ -1,6 +1,8 @@
 require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
+const helmet = require('helmet')
+const cors = require('cors')
 const MOVIES = require('./movies.json')
 
 console.log(process.env.API_TOKEN)
@@ -8,6 +10,8 @@ console.log(process.env.API_TOKEN)
 const app = express()
 
 app.use(morgan('dev'))
+app.use(helmet())
+app.use(cors())
 
 //Validate API_TOKEN before we move to the next station
 app.use(function validateBearerToken(req, res, next) {
@@ -21,9 +25,55 @@ app.use(function validateBearerToken(req, res, next) {
     //move to the next middleware
     next()
 })
+//params genre, country or avg_vote
+
+// genre, users are searching for 
+// whether the Movie's genre includes a specified string. The 
+// search should be case insensitive.
+
+// country, users are searching for whether the Movie's 
+// country includes a specified string. The search should be 
+// case insensitive.
+
+// average vote, users are searching for Movies with an avg_vote that 
+// is greater than or equal to the supplied number.
 
 function handleGetMovie(req, res) {
-    let response = MOVIES.movie
+    let response = MOVIES;
+
+    const { search = "", genre, country, avg_vote } = req.query;
+
+   
+    //filter movies by genre, if genre query param is present
+    if (genre) {
+        response = response.filter(movie =>
+            //case sensitive searching
+            movie.genre.toLowerCase().includes(genre.toLowerCase())
+            )
+    }
+    //filter movies by country, if country includes a specified string
+    if (country) {
+        response = response.filter(movie =>
+            movie.country.toLowerCase().includes(country.toLowerCase())
+        )
+    }
+
+    //filter movies by avg_vote, if avg_vote  is greater than or equal to the supplied number
+    let getNum = Number(avg_vote)
+    
+    if (avg_vote) {
+        if (!getNum) {
+            return res
+                .status(400)
+                .send("A number is required")
+        } 
+    }
+
+    if (getNum) {
+        response = response.filter(movie => 
+            movie.avg_vote >= getNum     
+        )
+    }
 
     res.json(response)
 }
